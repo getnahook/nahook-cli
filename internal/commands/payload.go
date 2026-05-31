@@ -1,21 +1,5 @@
 package commands
 
-// payload.go owns the --data flag resolution shared by `nahook send`
-// and `nahook trigger`. The flag accepts three forms, matching the
-// curl / Stripe-CLI convention:
-//
-//	--data '{"foo":1}'    inline JSON literal
-//	--data @body.json     read from file (path after the @)
-//	--data -              read from stdin
-//
-// Whichever form is used, the result must be a JSON OBJECT (not just
-// any valid JSON value) before we send it to the ingestion API — both
-// /ingest/:endpointId and /ingest/event/:eventType type `payload` as
-// `{ type: "object" }`, so arrays/primitives/null would 400 server-side
-// with Fastify's generic validation envelope. Failing fast on the
-// client gives a deterministic error and avoids burning a rate-limit
-// slot.
-
 import (
 	"encoding/json"
 	"fmt"

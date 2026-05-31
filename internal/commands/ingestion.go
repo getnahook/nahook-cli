@@ -1,10 +1,5 @@
 package commands
 
-// ingestion.go owns the helper that wires up an IngestionClient for
-// `nahook send` and `nahook trigger`. Lives at the commands layer (not
-// internal/auth) because the actionable error message is CLI-shaped
-// and references env vars / config paths.
-
 import (
 	"errors"
 	"fmt"
