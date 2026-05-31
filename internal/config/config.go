@@ -7,15 +7,19 @@
 //
 // File layout:
 //
-//	api_url      = "https://api.nahook.com"
-//	token        = "nhc_us_<random>"
-//	token_id     = "clitok_<public_id>"
-//	workspace_id = "ws_<public_id>"
-//	expires_at   = "2026-08-29T00:00:00Z"
-//	machine_name = "Jose's MacBook"
+//	api_url       = "https://api.nahook.com"
+//	token         = "nhc_us_<random>"
+//	token_id      = "clitok_<public_id>"
+//	workspace_id  = "ws_<public_id>"
+//	expires_at    = "2026-08-29T00:00:00Z"
+//	machine_name  = "Jose's MacBook"
+//	ingestion_key = "nhk_us_<random>"
 //
-// The token is sensitive; the directory is created with 0700 and the file
-// with 0600 on POSIX so it can't be world-readable.
+// The token and ingestion_key are sensitive; the directory is created
+// with 0700 and the file with 0600 on POSIX so it can't be
+// world-readable. `nahook trigger` and `nahook send` resolve the
+// ingestion key from the NAHOOK_INGESTION_KEY env var first and fall
+// back to ingestion_key in this file.
 package config
 
 import (
@@ -31,8 +35,9 @@ import (
 const (
 	defaultAPIURL = "https://api.nahook.com"
 
-	envConfigDir = "NAHOOK_CONFIG_DIR"
-	envAPIURL    = "NAHOOK_API_URL"
+	envConfigDir    = "NAHOOK_CONFIG_DIR"
+	envAPIURL       = "NAHOOK_API_URL"
+	envIngestionKey = "NAHOOK_INGESTION_KEY"
 
 	dirName  = ".nahook"
 	fileName = "config.toml"
@@ -43,12 +48,13 @@ const (
 
 // Config is the on-disk shape persisted across CLI sessions.
 type Config struct {
-	APIURL      string    `toml:"api_url"`
-	Token       string    `toml:"token,omitempty"`
-	TokenID     string    `toml:"token_id,omitempty"`
-	WorkspaceID string    `toml:"workspace_id,omitempty"`
-	ExpiresAt   time.Time `toml:"expires_at,omitempty"`
-	MachineName string    `toml:"machine_name,omitempty"`
+	APIURL       string    `toml:"api_url"`
+	Token        string    `toml:"token,omitempty"`
+	TokenID      string    `toml:"token_id,omitempty"`
+	WorkspaceID  string    `toml:"workspace_id,omitempty"`
+	ExpiresAt    time.Time `toml:"expires_at,omitempty"`
+	MachineName  string    `toml:"machine_name,omitempty"`
+	IngestionKey string    `toml:"ingestion_key,omitempty"`
 }
 
 // IsLoggedIn returns true when a credential is present. It does not call
@@ -68,6 +74,20 @@ func (c *Config) EffectiveAPIURL() string {
 		return c.APIURL
 	}
 	return defaultAPIURL
+}
+
+// EffectiveIngestionKey returns NAHOOK_INGESTION_KEY if set, otherwise
+// the persisted ingestion_key. Empty string when neither is configured;
+// callers should surface the actionable error message in that case rather
+// than letting the request 401 against a bogus key.
+//
+// Env wins so CI / per-shell overrides work without touching the file —
+// matches the precedence pattern used by aws-cli / gcloud / kubectl.
+func (c *Config) EffectiveIngestionKey() string {
+	if v := os.Getenv(envIngestionKey); v != "" {
+		return v
+	}
+	return c.IngestionKey
 }
 
 // Path returns the resolved config file path, honouring NAHOOK_CONFIG_DIR

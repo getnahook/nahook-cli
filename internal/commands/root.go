@@ -45,6 +45,8 @@ $NAHOOK_CONFIG_DIR) and talks to https://api.nahook.com by default
 	root.AddCommand(NewLoginCommand())
 	root.AddCommand(NewLogoutCommand())
 	root.AddCommand(NewWhoamiCommand())
+	root.AddCommand(NewSendCommand())
+	root.AddCommand(NewTriggerCommand())
 	root.AddCommand(endpoints.NewCommand())
 	root.AddCommand(events.NewCommand())
 
