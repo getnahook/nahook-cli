@@ -112,39 +112,42 @@ func (c *Client) ListAttempts(ctx context.Context, deliveryID string) ([]Attempt
 	return out, nil
 }
 
-// DeliveryPayload is the response from GET /deliveries/:id/payload.
+// DeliveryPayload is the public response from GET /deliveries/:id/payload.
 //
-// The backend returns one of two 2xx shapes:
-//   - 200 with Payload set when R2 has the persisted blob
-//   - 202 with Processing=true when the delivery hasn't been uploaded yet
+// The backend returns one of two 2xx shapes — Payload set (200, R2 has
+// the blob) or Processing=true (202, not yet uploaded). The wire-level
+// {"status":"processing"} field is normalised away at decode time so
+// callers only deal with the boolean.
 //
 // Non-2xx surfaces normally: 403 feature_disabled (plan missing payload
 // storage), 404 not_found, 5xx for storage errors.
 type DeliveryPayload struct {
 	// Payload is the original JSON body the producer sent. Kept as raw
 	// JSON so callers can re-emit it without a re-encode round trip.
-	Payload json.RawMessage `json:"payload,omitempty"`
-	// Processing is true when the backend returned 202 with
-	// {"status":"processing"} — the payload exists conceptually but
-	// hasn't been uploaded to R2 yet. Retry shortly.
-	Processing bool `json:"-"`
-	// Status carries the server's "processing" string when applicable.
-	// Populated only on the 202 path; ignored otherwise.
-	Status string `json:"status,omitempty"`
+	Payload json.RawMessage
+	// Processing is true when the backend returned 202 — the payload
+	// exists conceptually but hasn't been uploaded to R2 yet. Retry
+	// shortly.
+	Processing bool
 }
 
 // GetDeliveryPayload fetches the original event payload for a delivery.
 // Returns ({Processing: true}, nil) when the backend reports it's still
 // being uploaded so callers can distinguish "not yet" from a real error.
 func (c *Client) GetDeliveryPayload(ctx context.Context, deliveryID string) (*DeliveryPayload, error) {
-	var out DeliveryPayload
-	if err := c.HTTP.Do(ctx, "GET", c.workspacePath("/deliveries/"+url.PathEscape(deliveryID)+"/payload"), nil, &out); err != nil {
+	// Decode into a wire-local struct so the "status" field doesn't leak
+	// into the public type — callers use Processing, not Status.
+	var wire struct {
+		Payload json.RawMessage `json:"payload"`
+		Status  string          `json:"status"`
+	}
+	if err := c.HTTP.Do(ctx, "GET", c.workspacePath("/deliveries/"+url.PathEscape(deliveryID)+"/payload"), nil, &wire); err != nil {
 		return nil, err
 	}
-	if out.Status == "processing" {
-		out.Processing = true
-	}
-	return &out, nil
+	return &DeliveryPayload{
+		Payload:    wire.Payload,
+		Processing: wire.Status == "processing",
+	}, nil
 }
 
 // ResendDelivery re-enqueues a failed or dead-lettered delivery. Returns

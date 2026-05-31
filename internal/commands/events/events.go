@@ -66,6 +66,16 @@ func renderDelivery(out io.Writer, d *api.Delivery, jsonFlag bool) error {
 	if resolveFormat(out, jsonFlag) == output.FormatJSON {
 		return output.JSON(out, d)
 	}
+	return renderDeliveryKV(out, d)
+}
+
+// renderDeliveryKV writes the human-readable key:value view of a
+// delivery unconditionally — no format detection. Lets callers that
+// already resolved a format (e.g. renderDeliveryWithPayload) drive the
+// table branch without re-resolving against the writer, which matters
+// for unit tests using bytes.Buffer (the resolver falls back to JSON
+// for non-*os.File writers).
+func renderDeliveryKV(out io.Writer, d *api.Delivery) error {
 	pairs := [][2]string{
 		{"ID", d.ID},
 		{"Status", d.Status},

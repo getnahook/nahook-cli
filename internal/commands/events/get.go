@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -26,9 +27,9 @@ func newGetCommand() *cobra.Command {
 		Long: `Show one delivery by its public ID.
 
 Pass --include-payload to also fetch the original event body from the
-delivery payload store. The store is plan-gated (Starter+); on plans
-without payload storage the backend returns feature_disabled and the
-delivery summary still prints.`,
+delivery payload store. Payload storage is a plan-gated feature; on
+plans without it the backend returns feature_disabled and the delivery
+summary still prints.`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			_, apiClient, err := session.Require()
@@ -51,7 +52,8 @@ delivery summary still prints.`,
 			if payloadErr != nil && !client.IsCode(payloadErr, "feature_disabled", "not_found") {
 				return payloadErr
 			}
-			return renderDeliveryWithPayload(cmd.OutOrStdout(), cmd.ErrOrStderr(), d, payload, payloadErr, jsonOut)
+			stdout := cmd.OutOrStdout()
+			return renderDeliveryWithPayload(stdout, resolveFormat(stdout, jsonOut), d, payload, payloadErr)
 		},
 	}
 	cmd.Flags().BoolVar(&jsonOut, "json", false,
@@ -61,18 +63,25 @@ delivery summary still prints.`,
 	return cmd
 }
 
-// renderDeliveryWithPayload prints a delivery plus its payload. payloadErr
-// is non-nil for the allowed-soft-fail cases (feature_disabled / not_found)
-// and surfaces as a one-line stderr note in TTY mode, or as an `error`
-// field in JSON mode so machine consumers can match on it.
+// renderDeliveryWithPayload prints a delivery plus its payload.
+//
+// payloadErr is non-nil for the allowed-soft-fail cases
+// (feature_disabled / not_found). In table mode every "Payload: …"
+// status line goes to stdout alongside the delivery summary so a user
+// piping output to a file gets a single cohesive document. In JSON
+// mode the error surfaces as a machine-readable `payloadError` field
+// on the envelope.
+//
+// Format is taken as a parameter (already resolved by the caller) so
+// unit tests can drive either branch with a bytes.Buffer.
 func renderDeliveryWithPayload(
-	stdout, stderr io.Writer,
+	stdout io.Writer,
+	format output.Format,
 	d *api.Delivery,
 	payload *api.DeliveryPayload,
 	payloadErr error,
-	jsonOut bool,
 ) error {
-	if resolveFormat(stdout, jsonOut) == output.FormatJSON {
+	if format == output.FormatJSON {
 		envelope := struct {
 			*api.Delivery
 			Payload      json.RawMessage `json:"payload,omitempty"`
@@ -84,46 +93,45 @@ func renderDeliveryWithPayload(
 			envelope.Processing = payload.Processing
 		}
 		if payloadErr != nil {
-			envelope.PayloadError = payloadErrorCode(payloadErr)
+			var apiErr *client.APIError
+			if errors.As(payloadErr, &apiErr) {
+				envelope.PayloadError = apiErr.Code
+			}
 		}
 		enc := json.NewEncoder(stdout)
 		enc.SetIndent("", "  ")
 		return enc.Encode(envelope)
 	}
 
-	if err := renderDelivery(stdout, d, false); err != nil {
+	if err := renderDeliveryKV(stdout, d); err != nil {
 		return err
 	}
 	fmt.Fprintln(stdout)
 	switch {
 	case payloadErr != nil && client.IsCode(payloadErr, "feature_disabled"):
-		fmt.Fprintln(stderr, "Payload: not available — payload storage is not enabled on this plan")
+		fmt.Fprintln(stdout, "Payload: not available — payload storage is not enabled on this plan")
 	case payloadErr != nil && client.IsCode(payloadErr, "not_found"):
-		fmt.Fprintln(stderr, "Payload: not available — payload may have been purged by retention policy")
+		fmt.Fprintln(stdout, "Payload: not available — payload may have been purged by retention policy")
 	case payload != nil && payload.Processing:
 		fmt.Fprintln(stdout, "Payload: still uploading — retry shortly")
 	case payload != nil && len(payload.Payload) > 0:
 		fmt.Fprintln(stdout, "Payload:")
+		// Indent the body 2 spaces under the label. json.Indent prefixes
+		// every line EXCEPT the first; we patch that by prepending the
+		// prefix to the whole string and tacking it onto each subsequent
+		// newline. Result: `{` at col 2, inner keys at col 4, `}` at col 2.
 		var pretty bytes.Buffer
-		if err := json.Indent(&pretty, payload.Payload, "  ", "  "); err != nil {
+		if err := json.Indent(&pretty, payload.Payload, "", "  "); err != nil {
 			// Server returned non-JSON in the payload field; fall back to
 			// printing it verbatim rather than erroring.
 			fmt.Fprintln(stdout, "  "+string(payload.Payload))
 			return nil
 		}
-		fmt.Fprintln(stdout, "  "+pretty.String())
+		fmt.Fprintln(stdout, "  "+strings.ReplaceAll(pretty.String(), "\n", "\n  "))
 	default:
-		// Defensive: no error, no processing, no body. Shouldn't happen
-		// against today's backend but cheap to surface if it ever does.
-		fmt.Fprintln(stderr, "Payload: empty response from server")
+		// Unreachable against today's backend (200 always has body, 202
+		// always has Processing). Worth surfacing if that ever changes.
+		fmt.Fprintln(stdout, "Payload: empty response from server")
 	}
 	return nil
-}
-
-func payloadErrorCode(err error) string {
-	var apiErr *client.APIError
-	if !errors.As(err, &apiErr) || apiErr.Code == "" {
-		return "unknown_error"
-	}
-	return apiErr.Code
 }
