@@ -1,0 +1,55 @@
+version: 2
+
+project_name: nahook
+
+before:
+  hooks:
+    - go mod tidy
+    - go test ./...
+
+builds:
+  - id: nahook
+    main: ./cmd/nahook
+    binary: nahook
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - darwin
+      - linux
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ignore:
+      # Skip Windows on arm64 until there's actual demand.
+      - goos: windows
+        goarch: arm64
+    ldflags:
+      - -s -w
+      - -X github.com/getnahook/nahook-cli/internal/version.Version={{.Version}}
+      - -X github.com/getnahook/nahook-cli/internal/version.Commit={{.ShortCommit}}
+      - -X github.com/getnahook/nahook-cli/internal/version.Date={{.Date}}
+
+archives:
+  - id: default
+    name_template: >-
+      {{ .ProjectName }}_{{ .Version }}_
+      {{- if eq .Os "darwin" }}macos
+      {{- else }}{{ .Os }}{{ end }}_
+      {{- .Arch }}
+    formats:
+      - tar.gz
+    format_overrides:
+      - goos: windows
+        formats:
+          - zip
+
+checksum:
+  name_template: "checksums.txt"
+
+changelog:
+  disable: true
+
+release:
+  draft: false
+  prerelease: auto
