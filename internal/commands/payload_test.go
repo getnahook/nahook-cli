@@ -136,3 +136,45 @@ func TestResolvePayloadData_RejectsEmptyStdin(t *testing.T) {
 		t.Errorf("expected 'empty' in error, got: %v", err)
 	}
 }
+
+func TestResolvePayloadData_RejectsTTYStdin(t *testing.T) {
+	// Open /dev/tty (the controlling terminal) to get an *os.File that
+	// IS a char device. If the test host has no controlling terminal
+	// (CI without a pty), /dev/tty open fails — skip rather than fail.
+	tty, err := os.Open("/dev/tty")
+	if err != nil {
+		t.Skipf("no /dev/tty available on this host: %v", err)
+	}
+	defer tty.Close()
+
+	_, err = resolvePayloadData("-", tty)
+	if err == nil {
+		t.Fatal("expected error for TTY stdin, got nil")
+	}
+	if !strings.Contains(err.Error(), "interactive terminal") {
+		t.Errorf("expected 'interactive terminal' in error, got: %v", err)
+	}
+}
+
+func TestIsTerminal_NonFileReader(t *testing.T) {
+	// strings.Reader is not *os.File, so isTerminal must return false.
+	// Guards the test-injection invariant that backs every other
+	// resolvePayloadData test in this file.
+	if isTerminal(strings.NewReader("x")) {
+		t.Error("expected isTerminal to be false for strings.Reader")
+	}
+}
+
+func TestIsTerminal_RegularFileIsNotTerminal(t *testing.T) {
+	// A regular file *is* an *os.File but its Mode has no
+	// ModeCharDevice bit — isTerminal must still return false so
+	// `--data - < body.json` flows through.
+	f, err := os.CreateTemp(t.TempDir(), "stdin-*.json")
+	if err != nil {
+		t.Fatalf("setup: %v", err)
+	}
+	defer f.Close()
+	if isTerminal(f) {
+		t.Error("expected isTerminal to be false for regular file")
+	}
+}

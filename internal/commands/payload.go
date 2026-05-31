@@ -1,16 +1,20 @@
-// Package commands - payload.go owns the --data flag resolution shared
-// by `nahook send` and `nahook trigger`. The flag accepts three forms,
-// matching the curl / Stripe-CLI convention:
+package commands
+
+// payload.go owns the --data flag resolution shared by `nahook send`
+// and `nahook trigger`. The flag accepts three forms, matching the
+// curl / Stripe-CLI convention:
 //
 //	--data '{"foo":1}'    inline JSON literal
 //	--data @body.json     read from file (path after the @)
 //	--data -              read from stdin
 //
-// Whichever form is used, the result must be a valid JSON value before
-// we send it to the ingestion API — the backend's body schema rejects
-// non-JSON, so failing fast on the client side gives a deterministic
-// error and avoids burning a rate-limit slot.
-package commands
+// Whichever form is used, the result must be a JSON OBJECT (not just
+// any valid JSON value) before we send it to the ingestion API — both
+// /ingest/:endpointId and /ingest/event/:eventType type `payload` as
+// `{ type: "object" }`, so arrays/primitives/null would 400 server-side
+// with Fastify's generic validation envelope. Failing fast on the
+// client gives a deterministic error and avoids burning a rate-limit
+// slot.
 
 import (
 	"encoding/json"
@@ -32,6 +36,13 @@ func resolvePayloadData(raw string, stdin io.Reader) (json.RawMessage, error) {
 	var body []byte
 	switch {
 	case raw == "-":
+		// Reject when stdin is a terminal — otherwise the CLI would
+		// silently block waiting for EOF, looking like a hang. Only
+		// applies when stdin really is *os.File (production); tests
+		// inject strings.Reader and skip this guard.
+		if isTerminal(stdin) {
+			return nil, fmt.Errorf("--data - requires piped or redirected input (got an interactive terminal)")
+		}
 		buf, err := io.ReadAll(stdin)
 		if err != nil {
 			return nil, fmt.Errorf("read --data from stdin: %w", err)
@@ -90,6 +101,22 @@ func jsonValueKind(v interface{}) string {
 	default:
 		return "unknown"
 	}
+}
+
+// isTerminal reports whether r is an *os.File whose underlying fd is a
+// character device (a TTY). Anything else — strings.Reader, bytes.Buffer,
+// io.Pipe, a redirected file — returns false, so unit tests and shell
+// pipelines both flow through normally.
+func isTerminal(r io.Reader) bool {
+	f, ok := r.(*os.File)
+	if !ok {
+		return false
+	}
+	fi, err := f.Stat()
+	if err != nil {
+		return false
+	}
+	return fi.Mode()&os.ModeCharDevice != 0
 }
 
 // trimTrailingWhitespace strips trailing newlines, carriage returns,

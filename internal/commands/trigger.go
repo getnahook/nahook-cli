@@ -3,7 +3,6 @@ package commands
 import (
 	"fmt"
 	"io"
-	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -18,10 +17,9 @@ import (
 // subscription routing.
 func NewTriggerCommand() *cobra.Command {
 	var (
-		data     string
-		metadata []string
-		forward  string
-		jsonOut  bool
+		data    string
+		forward string
+		jsonOut bool
 	)
 
 	cmd := &cobra.Command{
@@ -38,12 +36,7 @@ Payload sources:
 
   nahook trigger order.created --data '{"order_id":"o_1"}'
   nahook trigger order.created --data @body.json
-  cat body.json | nahook trigger order.created --data -
-
-Metadata is optional, key=value, and repeatable:
-
-  nahook trigger order.created --data '{"id":1}' \
-      --metadata source=stripe --metadata env=prod`,
+  cat body.json | nahook trigger order.created --data -`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if forward != "" {
@@ -61,19 +54,18 @@ Metadata is optional, key=value, and repeatable:
 				return err
 			}
 
-			meta, err := parseMetadataPairs(metadata)
-			if err != nil {
-				return err
-			}
-
 			_, ingest, err := requireIngestion()
 			if err != nil {
 				return err
 			}
 
+			// Metadata is intentionally not exposed as a CLI flag: the
+			// ingestion route accepts it and the fan-out use case merges
+			// it onto the Kafka message, but no downstream consumer
+			// (worker, delivery row, webhook headers, analytics) reads
+			// it. Re-expose once a real filter/debug surface ships.
 			res, err := ingest.Trigger(cmd.Context(), args[0], api.TriggerInput{
-				Payload:  payload,
-				Metadata: meta,
+				Payload: payload,
 			})
 			if err != nil {
 				return err
@@ -84,8 +76,6 @@ Metadata is optional, key=value, and repeatable:
 
 	cmd.Flags().StringVar(&data, "data", "",
 		"JSON payload to send — inline ('{...}'), @file, or - for stdin")
-	cmd.Flags().StringArrayVar(&metadata, "metadata", nil,
-		"key=value metadata to attach (repeat for multiple keys)")
 	cmd.Flags().StringVar(&forward, "forward", "",
 		"NOT YET SUPPORTED — will replay signed payload to a local URL in a future release")
 	cmd.Flags().BoolVar(&jsonOut, "json", false,
@@ -95,24 +85,6 @@ Metadata is optional, key=value, and repeatable:
 		panic(err)
 	}
 	return cmd
-}
-
-// parseMetadataPairs converts a slice of "key=value" strings to a map.
-// Empty/missing `=` is a hard error so a typo doesn't silently drop a
-// label the user thought they were sending.
-func parseMetadataPairs(pairs []string) (map[string]string, error) {
-	if len(pairs) == 0 {
-		return nil, nil
-	}
-	out := make(map[string]string, len(pairs))
-	for _, p := range pairs {
-		k, v, ok := strings.Cut(p, "=")
-		if !ok || k == "" {
-			return nil, fmt.Errorf("invalid --metadata %q — expected key=value", p)
-		}
-		out[k] = v
-	}
-	return out, nil
 }
 
 func renderTriggerResult(out io.Writer, r *api.TriggerResult, jsonOut bool) error {
