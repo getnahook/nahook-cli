@@ -7,7 +7,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/getnahook/nahook-cli/internal/client"
@@ -56,9 +55,6 @@ type PollOptions struct {
 	Interval    time.Duration
 	Expiry      time.Duration
 	MachineName string
-	// Stdout is where intermediate "Waiting for authorization..." style
-	// updates are written. nil silences them — useful for tests.
-	Stdout *os.File
 }
 
 // Poll repeatedly hits /api/cli/device-grant/poll until the grant is

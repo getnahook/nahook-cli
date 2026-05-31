@@ -2,7 +2,6 @@ package commands
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 
@@ -43,13 +42,12 @@ func runLogout(ctx context.Context, out io.Writer) error {
 	if cfg.TokenID != "" {
 		api := client.New(cfg.EffectiveAPIURL()).WithBearer(cfg.Token)
 		err := api.Do(ctx, "DELETE", "/api/cli/tokens/"+cfg.TokenID, nil, nil)
-		// 401 / 404 here just mean the token was already revoked from the
-		// dashboard — that's success from the user's point of view.
+		// "Soft" codes mean the server-side token is already gone — from
+		// the user's point of view that IS success, so don't surface a
+		// warning. Anything else (5xx, network errors, unexpected 4xx)
+		// gets surfaced so the user can take action.
 		if err != nil && !client.IsCode(err, "unauthorized", "not_found", "token_revoked", "token_expired") {
-			var apiErr *client.APIError
-			if !errors.As(err, &apiErr) || apiErr.StatusCode < 400 || apiErr.StatusCode >= 500 {
-				revokeErr = err
-			}
+			revokeErr = err
 		}
 	}
 

@@ -6,22 +6,25 @@ The Nahook command-line tool — trigger events, inspect deliveries, manage endp
 
 ## Install
 
-### macOS (Homebrew)
-
-```sh
-brew install getnahook/tap/nahook
-```
-
-### Linux & macOS (install script)
-
-```sh
-curl -fsSL https://cli.nahook.com/install.sh | sh
-```
+> Pre-release: install via source for now. Homebrew + one-line install
+> script land alongside the first tagged release.
 
 ### From source
 
 ```sh
 go install github.com/getnahook/nahook-cli/cmd/nahook@latest
+```
+
+### macOS (Homebrew) — coming soon
+
+```sh
+brew install getnahook/tap/nahook
+```
+
+### Linux & macOS (install script) — coming soon
+
+```sh
+curl -fsSL https://cli.nahook.com/install.sh | sh
 ```
 
 ## Quick start
