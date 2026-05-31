@@ -59,7 +59,7 @@ summary still prints.`,
 	cmd.Flags().BoolVar(&jsonOut, "json", false,
 		"emit JSON instead of the human-readable key/value view")
 	cmd.Flags().BoolVar(&includePayload, "include-payload", false,
-		"also fetch the original event payload (requires payload-storage plan feature)")
+		"try to fetch the original event payload (skipped on plans without payload storage)")
 	return cmd
 }
 

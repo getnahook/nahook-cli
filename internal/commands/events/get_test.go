@@ -58,7 +58,9 @@ func TestRenderDeliveryWithPayload_JSON_Processing(t *testing.T) {
 		t.Fatalf("render: %v", err)
 	}
 	var got map[string]any
-	_ = json.Unmarshal(buf.Bytes(), &got)
+	if err := json.Unmarshal(buf.Bytes(), &got); err != nil {
+		t.Fatalf("output is not valid JSON: %v\n%s", err, buf.String())
+	}
 	if got["payloadProcessing"] != true {
 		t.Errorf("expected payloadProcessing=true, got %v", got["payloadProcessing"])
 	}
@@ -74,7 +76,9 @@ func TestRenderDeliveryWithPayload_JSON_FeatureDisabledError(t *testing.T) {
 		t.Fatalf("render: %v", err)
 	}
 	var got map[string]any
-	_ = json.Unmarshal(buf.Bytes(), &got)
+	if err := json.Unmarshal(buf.Bytes(), &got); err != nil {
+		t.Fatalf("output is not valid JSON: %v\n%s", err, buf.String())
+	}
 	if got["payloadError"] != "feature_disabled" {
 		t.Errorf("expected payloadError=feature_disabled, got %v", got["payloadError"])
 	}
@@ -103,7 +107,11 @@ func TestRenderDeliveryWithPayload_Table_HappyPath_PayloadIndentedUnderLabel(t *
 	}
 }
 
-func TestRenderDeliveryWithPayload_Table_AllSoftFailMessagesGoToStdout(t *testing.T) {
+func TestRenderDeliveryWithPayload_Table_IncludesSoftFailMessages(t *testing.T) {
+	// The function's single writer parameter makes a stderr leak
+	// structurally impossible — no stderr arg, no os.Stderr import.
+	// This test just confirms each soft-fail surface produces a
+	// recognisable line in the rendered output.
 	cases := []struct {
 		name       string
 		payload    *api.DeliveryPayload
@@ -121,18 +129,17 @@ func TestRenderDeliveryWithPayload_Table_AllSoftFailMessagesGoToStdout(t *testin
 				t.Fatalf("render: %v", err)
 			}
 			if !strings.Contains(buf.String(), tc.needle) {
-				t.Errorf("expected %q on stdout, got:\n%s", tc.needle, buf.String())
+				t.Errorf("expected %q in output, got:\n%s", tc.needle, buf.String())
 			}
 		})
 	}
 }
 
-func TestRenderDeliveryWithPayload_Table_HardErrorMustNotReachRender(t *testing.T) {
-	// Sanity guard: this function only runs after RunE filters for the
-	// two soft-fail codes. If a 500 ever leaks through, we still want
-	// some recognisable output so the bug is visible. The default
-	// branch prints "empty response from server" — assert that we
-	// hit it (not a panic) for an unexpected APIError code.
+func TestRenderDeliveryWithPayload_Table_UnknownErrorFallsBackToEmptyMessage(t *testing.T) {
+	// Defense-in-depth: RunE filters to the two soft-fail codes before
+	// calling render, so an "internal_error" APIError shouldn't reach
+	// here in practice. If the filter ever regresses, we still want a
+	// recognisable line in the output rather than a panic or silent gap.
 	var buf bytes.Buffer
 	apiErr := &client.APIError{StatusCode: 500, Code: "internal_error"}
 	if err := renderDeliveryWithPayload(&buf, output.FormatTable, sampleDelivery(), nil, apiErr); err != nil {
