@@ -77,7 +77,12 @@ esac
 
 VERSION=${NAHOOK_VERSION:-}
 if [ -z "$VERSION" ]; then
-    log_info "resolving latest release of $REPO…"
+    # Trailing space before quote, not an ellipsis: POSIX dash and BusyBox
+    # ash glue any non-ASCII byte that immediately follows `$VAR` onto the
+    # variable name. With `set -u`, "$REPO…" parses as undefined variable
+    # REPO\xE2\x80\xA6 and explodes. ASCII-only inside variable-adjacent
+    # positions.
+    log_info "resolving latest release of $REPO..."
     # The /releases/latest endpoint returns a JSON blob; grep+sed is enough
     # for the one field we care about and avoids a jq dependency.
     VERSION=$(curl -fsSL -H "Accept: application/vnd.github+json" \
