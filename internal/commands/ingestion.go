@@ -30,15 +30,23 @@ func requireIngestion() (*config.Config, *api.IngestionClient, error) {
 	}
 	key := cfg.EffectiveIngestionKey()
 	if key == "" {
+		// Resolve the actual config path so the hint stays accurate when
+		// NAHOOK_CONFIG_DIR points somewhere other than ~/.nahook. Fall
+		// back to the literal default if path resolution itself fails —
+		// the hint is still useful, just generic.
+		configPath := "~/.nahook/config.toml"
+		if p, perr := config.Path(); perr == nil {
+			configPath = p
+		}
 		return nil, nil, fmt.Errorf(`%w
 
 Set one of:
   export NAHOOK_INGESTION_KEY=nhk_us_xxx
-or add this line to ~/.nahook/config.toml:
+or add this line to %s:
   ingestion_key = "nhk_us_xxx"
 
 Get a key in the dashboard at:
-  Settings → API Keys`, ErrIngestionKeyMissing)
+  Settings → API Keys`, ErrIngestionKeyMissing, configPath)
 	}
 	return cfg, api.NewIngestionClient(key), nil
 }

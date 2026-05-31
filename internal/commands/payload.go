@@ -51,24 +51,53 @@ func resolvePayloadData(raw string, stdin io.Reader) (json.RawMessage, error) {
 		body = []byte(raw)
 	}
 
-	body = trimTrailingNewline(body)
+	body = trimTrailingWhitespace(body)
 	if len(body) == 0 {
 		return nil, fmt.Errorf("--data resolved to empty input")
 	}
 
-	// Validate JSON shape before we round-trip to the backend. json.Valid
-	// is cheap and catches the most common failure mode (forgot quotes,
-	// stray comma, file is JSONL not JSON).
-	if !json.Valid(body) {
-		return nil, fmt.Errorf("--data is not valid JSON")
+	// Validate that the payload is a JSON OBJECT specifically — the
+	// backend's body schema types `payload` as `{ type: "object" }` on
+	// both /ingest/:endpointId and /ingest/event/:eventType, so arrays /
+	// primitives / nulls pass `json.Valid` here but 400 at the server
+	// with Fastify's generic validation envelope. Reject up-front with
+	// a precise message so the caller can wrap their data correctly.
+	var probe interface{}
+	if err := json.Unmarshal(body, &probe); err != nil {
+		return nil, fmt.Errorf("--data is not valid JSON: %w", err)
+	}
+	if _, ok := probe.(map[string]interface{}); !ok {
+		return nil, fmt.Errorf("--data must be a JSON object, got %s — wrap it like '{\"data\": ...}' if needed", jsonValueKind(probe))
 	}
 	return json.RawMessage(body), nil
 }
 
-// trimTrailingNewline strips a single trailing \n or \r\n so files saved
-// by editors don't leave a stray byte that fails strict JSON parsers
-// downstream (json.Valid handles it, but other consumers may not).
-func trimTrailingNewline(b []byte) []byte {
+// jsonValueKind names the top-level JSON value type for use in error
+// messages. Matches Go's encoding/json conventions so the user sees a
+// term they can google.
+func jsonValueKind(v interface{}) string {
+	switch v.(type) {
+	case nil:
+		return "null"
+	case bool:
+		return "boolean"
+	case float64:
+		return "number"
+	case string:
+		return "string"
+	case []interface{}:
+		return "array"
+	default:
+		return "unknown"
+	}
+}
+
+// trimTrailingWhitespace strips trailing newlines, carriage returns,
+// spaces, and tabs so files saved by editors (which often append a
+// trailing \n) don't trip the empty-input check or downstream consumers
+// that don't tolerate the noise. JSON itself ignores insignificant
+// whitespace, so this is purely for our own error path.
+func trimTrailingWhitespace(b []byte) []byte {
 	for len(b) > 0 {
 		switch b[len(b)-1] {
 		case '\n', '\r', ' ', '\t':
