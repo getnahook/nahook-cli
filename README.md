@@ -2,29 +2,41 @@
 
 The Nahook command-line tool — trigger events, inspect deliveries, manage endpoints.
 
-> Heads up: `nahook` is in active development. Commands and flags may change before `v1.0.0`.
+> Heads up: `nahook` is pre-1.0. Commands and flags may change before `v1.0.0`.
 
 ## Install
 
-> Pre-release: install via source for now. Homebrew + one-line install
-> script land alongside the first tagged release.
-
-### From source
-
-```sh
-go install github.com/getnahook/nahook-cli/cmd/nahook@latest
-```
-
-### macOS (Homebrew) — coming soon
+### macOS (Homebrew)
 
 ```sh
 brew install getnahook/tap/nahook
 ```
 
-### Linux & macOS (install script) — coming soon
+`brew upgrade nahook` keeps you current. The formula is auto-published on
+every tagged release from the [getnahook/homebrew-tap](https://github.com/getnahook/homebrew-tap) repo.
+
+### Linux & macOS (install script)
 
 ```sh
 curl -fsSL https://cli.nahook.com/install.sh | sh
+```
+
+Pin a specific version or change the install location:
+
+```sh
+NAHOOK_VERSION=v0.1.0 \
+NAHOOK_INSTALL_DIR=$HOME/.local/bin \
+  curl -fsSL https://cli.nahook.com/install.sh | sh
+```
+
+The script verifies the SHA-256 checksum of the release archive before
+installing and offers to install shell completions for bash, zsh, and
+fish. Set `NAHOOK_NO_COMPLETION=1` to skip the completion step.
+
+### From source
+
+```sh
+go install github.com/getnahook/nahook-cli/cmd/nahook@latest
 ```
 
 ## Quick start
