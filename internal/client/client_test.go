@@ -13,12 +13,6 @@ import (
 	"github.com/getnahook/nahook-cli/internal/version"
 )
 
-func asAPIError(err error, target **APIError) bool {
-	return errors.As(err, target)
-}
-
-func timeSecond() time.Duration { return time.Second }
-
 func TestDo_SetsIdentifyingHeadersAndAuthOnSuccess(t *testing.T) {
 	var gotAuth, gotUA, gotClient string
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -108,13 +102,13 @@ func TestDo_429SurfacesRetryAfterAsDuration(t *testing.T) {
 		t.Fatal("expected APIError, got nil")
 	}
 	var apiErr *APIError
-	if !asAPIError(err, &apiErr) {
+	if !errors.As(err, &apiErr) {
 		t.Fatalf("expected *APIError, got %T", err)
 	}
 	if apiErr.StatusCode != http.StatusTooManyRequests {
 		t.Errorf("expected 429, got %d", apiErr.StatusCode)
 	}
-	if apiErr.RetryAfter != 7*timeSecond() {
+	if apiErr.RetryAfter != 7*time.Second {
 		t.Errorf("expected 7s RetryAfter, got %s", apiErr.RetryAfter)
 	}
 	if apiErr.Code != "rate_limited" {
@@ -131,7 +125,7 @@ func TestDo_429WithoutRetryAfterIsZero(t *testing.T) {
 
 	err := New(srv.URL).Do(context.Background(), "GET", "/", nil, nil)
 	var apiErr *APIError
-	if !asAPIError(err, &apiErr) {
+	if !errors.As(err, &apiErr) {
 		t.Fatalf("expected *APIError, got %T", err)
 	}
 	if apiErr.RetryAfter != 0 {

@@ -12,10 +12,13 @@ import (
 	"github.com/getnahook/nahook-cli/internal/output"
 )
 
-// validStatuses mirrors the backend enum. Kept here so we can fail-fast
-// on the client before round-tripping a clearly-bad value — the backend
-// would return a 400 with Fastify's generic validation envelope, which is
-// noisier than a deterministic CLI message.
+// validStatuses mirrors the backend delivery-status enum. Kept here so we
+// can fail-fast on the client before round-tripping a clearly-bad value —
+// the backend would return a 400 with Fastify's generic validation
+// envelope, which is noisier than a deterministic CLI message.
+//
+// If you add a new status, also update the backend enum in
+// packages/shared (DeliveryStatus) and the schema in analytics.routes.ts.
 var validStatuses = map[string]bool{
 	"pending":         true,
 	"delivering":      true,
@@ -38,14 +41,10 @@ func newListCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "List deliveries for an endpoint",
-		Long: `List deliveries for an endpoint, oldest-first within the current cursor
-position. Pass --all to walk every page transparently (the CLI sleeps and
-retries on 429 rate-limit responses).`,
+		Long: `List deliveries for an endpoint, newest-first. Pass --all to walk every
+page transparently (the CLI sleeps and retries on 429 rate-limit responses).`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			if endpointID == "" {
-				return errors.New("--endpoint is required (e.g. ep_xxx)")
-			}
 			if status != "" && !validStatuses[status] {
 				return fmt.Errorf("invalid --status %q — must be one of pending, delivering, delivered, failed, scheduled_retry, dead_letter", status)
 			}
@@ -105,6 +104,12 @@ retries on 429 rate-limit responses).`,
 // accumulates one combined array printed at the end — easier to pipe
 // into `jq` than NDJSON. In table mode it streams one table per page so
 // the user sees progress without waiting on the whole walk.
+//
+// Progress dots are only emitted in JSON mode, where stdout is held back
+// until the walk completes — without them the user has no signal that
+// pagination is making progress. In table mode the streaming tables ARE
+// the progress indicator; adding dots would interleave with the tables
+// on the same terminal device.
 func runListAll(
 	cmd *cobra.Command,
 	apiClient *api.Client,
@@ -114,17 +119,21 @@ func runListAll(
 ) error {
 	mode := resolveFormat(cmd.OutOrStdout(), jsonOut)
 	stderr := cmd.ErrOrStderr()
-	progress := func(_, _ int) {
-		fmt.Fprint(stderr, ".")
-	}
 
 	if mode == output.FormatJSON {
+		dots := 0
+		progress := func(_, _ int) {
+			fmt.Fprint(stderr, ".")
+			dots++
+		}
 		var all []api.Delivery
 		err := apiClient.PaginateDeliveries(cmd.Context(), endpointID, opts, progress, func(page api.ListDeliveriesPage) error {
 			all = append(all, page.Deliveries...)
 			return nil
 		})
-		fmt.Fprintln(stderr) // close the progress line
+		if dots > 0 {
+			fmt.Fprintln(stderr) // close the progress line
+		}
 		if err != nil {
 			return decorateCursorError(err)
 		}
@@ -132,14 +141,13 @@ func runListAll(
 	}
 
 	first := true
-	err := apiClient.PaginateDeliveries(cmd.Context(), endpointID, opts, progress, func(page api.ListDeliveriesPage) error {
+	err := apiClient.PaginateDeliveries(cmd.Context(), endpointID, opts, nil, func(page api.ListDeliveriesPage) error {
 		if !first {
 			fmt.Fprintln(cmd.OutOrStdout())
 		}
 		first = false
 		return renderDeliveryList(cmd.OutOrStdout(), page.Deliveries, false)
 	})
-	fmt.Fprintln(stderr)
 	if err != nil {
 		return decorateCursorError(err)
 	}

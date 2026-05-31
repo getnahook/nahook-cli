@@ -126,6 +126,57 @@ func TestResendDelivery_PostNoBody(t *testing.T) {
 	}
 }
 
+func TestGetDeliveryPayload_HappyPathRawJSON(t *testing.T) {
+	c, _ := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/api/workspaces/ws_test/deliveries/del_abc/payload" {
+			t.Errorf("unexpected path %q", r.URL.Path)
+		}
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"payload":{"order_id":"o_1","amount":42}}`))
+	})
+	p, err := c.GetDeliveryPayload(context.Background(), "del_abc")
+	if err != nil {
+		t.Fatalf("GetDeliveryPayload: %v", err)
+	}
+	if p.Processing {
+		t.Errorf("expected Processing=false, got true")
+	}
+	if string(p.Payload) != `{"order_id":"o_1","amount":42}` {
+		t.Errorf("payload roundtrip mismatch: %s", string(p.Payload))
+	}
+}
+
+func TestGetDeliveryPayload_202SignalsProcessing(t *testing.T) {
+	c, _ := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusAccepted)
+		_, _ = w.Write([]byte(`{"status":"processing"}`))
+	})
+	p, err := c.GetDeliveryPayload(context.Background(), "del_abc")
+	if err != nil {
+		t.Fatalf("GetDeliveryPayload: %v", err)
+	}
+	if !p.Processing {
+		t.Errorf("expected Processing=true")
+	}
+	if len(p.Payload) != 0 {
+		t.Errorf("expected empty payload on processing, got %s", string(p.Payload))
+	}
+}
+
+func TestGetDeliveryPayload_403FeatureDisabled(t *testing.T) {
+	c, _ := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusForbidden)
+		_, _ = w.Write([]byte(`{"error":{"code":"feature_disabled","message":"Payload storage is not available on your plan"}}`))
+	})
+	_, err := c.GetDeliveryPayload(context.Background(), "del_abc")
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if !client.IsCode(err, "feature_disabled") {
+		t.Errorf("expected feature_disabled, got %v", err)
+	}
+}
+
 func TestPaginateDeliveries_WalksAllPagesUntilNullCursor(t *testing.T) {
 	// Server returns three pages: two with nextCursor, one with null.
 	pages := []struct {

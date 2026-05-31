@@ -89,7 +89,7 @@ func renderAttempts(out io.Writer, attempts []api.Attempt, jsonFlag bool) error 
 		{Header: "#", Value: func(a api.Attempt) string { return itoa(a.AttemptNumber) }},
 		{Header: "STATUS", Value: func(a api.Attempt) string { return a.Status }},
 		{Header: "HTTP", Value: func(a api.Attempt) string { return derefInt(a.ResponseStatusCode) }},
-		{Header: "LATENCY (ms)", Value: func(a api.Attempt) string { return derefInt(a.ResponseTimeMs) }},
+		{Header: "MS", Value: func(a api.Attempt) string { return derefInt(a.ResponseTimeMs) }},
 		{Header: "CREATED", Value: func(a api.Attempt) string { return a.CreatedAt }},
 		{Header: "ERROR", Value: func(a api.Attempt) string { return derefStr(a.ErrorMessage) }},
 	}, attempts)
