@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/getnahook/nahook-cli/internal/commands/endpoints"
+	"github.com/getnahook/nahook-cli/internal/commands/events"
 	"github.com/getnahook/nahook-cli/internal/version"
 )
 
@@ -45,6 +46,7 @@ $NAHOOK_CONFIG_DIR) and talks to https://api.nahook.com by default
 	root.AddCommand(NewLogoutCommand())
 	root.AddCommand(NewWhoamiCommand())
 	root.AddCommand(endpoints.NewCommand())
+	root.AddCommand(events.NewCommand())
 
 	return root
 }

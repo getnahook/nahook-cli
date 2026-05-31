@@ -3,13 +3,21 @@ package client
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/getnahook/nahook-cli/internal/version"
 )
+
+func asAPIError(err error, target **APIError) bool {
+	return errors.As(err, target)
+}
+
+func timeSecond() time.Duration { return time.Second }
 
 func TestDo_SetsIdentifyingHeadersAndAuthOnSuccess(t *testing.T) {
 	var gotAuth, gotUA, gotClient string
@@ -84,6 +92,50 @@ func TestDo_ParsesAPIErrorEnvelope(t *testing.T) {
 	}
 	if IsCode(err, "not_this") {
 		t.Errorf("expected IsCode not_this to not match, got %v", err)
+	}
+}
+
+func TestDo_429SurfacesRetryAfterAsDuration(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Retry-After", "7")
+		w.WriteHeader(http.StatusTooManyRequests)
+		_, _ = w.Write([]byte(`{"error":{"code":"rate_limited","message":"slow down"}}`))
+	}))
+	defer srv.Close()
+
+	err := New(srv.URL).Do(context.Background(), "GET", "/", nil, nil)
+	if err == nil {
+		t.Fatal("expected APIError, got nil")
+	}
+	var apiErr *APIError
+	if !asAPIError(err, &apiErr) {
+		t.Fatalf("expected *APIError, got %T", err)
+	}
+	if apiErr.StatusCode != http.StatusTooManyRequests {
+		t.Errorf("expected 429, got %d", apiErr.StatusCode)
+	}
+	if apiErr.RetryAfter != 7*timeSecond() {
+		t.Errorf("expected 7s RetryAfter, got %s", apiErr.RetryAfter)
+	}
+	if apiErr.Code != "rate_limited" {
+		t.Errorf("expected rate_limited code, got %q", apiErr.Code)
+	}
+}
+
+func TestDo_429WithoutRetryAfterIsZero(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusTooManyRequests)
+		_, _ = w.Write([]byte(`{"error":{"code":"rate_limited","message":"slow"}}`))
+	}))
+	defer srv.Close()
+
+	err := New(srv.URL).Do(context.Background(), "GET", "/", nil, nil)
+	var apiErr *APIError
+	if !asAPIError(err, &apiErr) {
+		t.Fatalf("expected *APIError, got %T", err)
+	}
+	if apiErr.RetryAfter != 0 {
+		t.Errorf("expected zero RetryAfter without header, got %s", apiErr.RetryAfter)
 	}
 }
 

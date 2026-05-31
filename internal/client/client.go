@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -52,10 +53,15 @@ func (c *Client) WithBearer(token string) *Client {
 // APIError is returned for non-2xx responses. The Code field carries the
 // backend's machine-readable error code so callers can match on it without
 // parsing the human-readable Message.
+//
+// RetryAfter is set when the server returns a Retry-After header (typical
+// on 429). Callers paginating or batching can sleep for that duration and
+// retry the same request instead of erroring out. Zero when absent.
 type APIError struct {
 	StatusCode int
 	Code       string `json:"code"`
 	Message    string `json:"message"`
+	RetryAfter time.Duration
 }
 
 func (e *APIError) Error() string {
@@ -142,5 +148,31 @@ func (c *Client) Do(ctx context.Context, method, path string, body, out any) err
 		apiErr.Code = envelope.Error.Code
 		apiErr.Message = envelope.Error.Message
 	}
+	if ra := resp.Header.Get("Retry-After"); ra != "" {
+		apiErr.RetryAfter = parseRetryAfter(ra)
+	}
 	return apiErr
+}
+
+// parseRetryAfter implements RFC 7231 §7.1.3: either a delta-seconds
+// integer or an HTTP-date. The Nahook backend always emits seconds, but
+// being lenient costs nothing and protects future-us from a header
+// reformat.
+func parseRetryAfter(v string) time.Duration {
+	v = strings.TrimSpace(v)
+	if v == "" {
+		return 0
+	}
+	if secs, err := strconv.Atoi(v); err == nil {
+		if secs < 0 {
+			return 0
+		}
+		return time.Duration(secs) * time.Second
+	}
+	if t, err := http.ParseTime(v); err == nil {
+		if d := time.Until(t); d > 0 {
+			return d
+		}
+	}
+	return 0
 }
