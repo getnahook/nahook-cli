@@ -147,7 +147,8 @@ else
     sudo mkdir -p "$INSTALL_DIR"
     sudo mv "$tmpdir/$BINARY" "$INSTALL_DIR/$BINARY"
 fi
-chmod +x "$INSTALL_DIR/$BINARY" 2>/dev/null || sudo chmod +x "$INSTALL_DIR/$BINARY"
+# goreleaser archives preserve the +x bit, so the mv'd binary is already
+# executable. No chmod needed.
 
 # --- shell completion install ------------------------------------------------
 
@@ -171,17 +172,34 @@ install_completion() {
         return 0
     }
 
+    # Resolve the brew prefix once so bash + zsh both land in the right
+    # tree on Apple Silicon (/opt/homebrew) vs Intel (/usr/local). When
+    # brew isn't installed we fall back to /usr/local, which is the
+    # historical default and what bash-completion will scan anyway when
+    # installed from source.
+    brew_prefix=""
+    if command -v brew >/dev/null 2>&1; then
+        brew_prefix=$(brew --prefix 2>/dev/null || echo "")
+    fi
+    if [ -z "$brew_prefix" ]; then
+        brew_prefix="/usr/local"
+    fi
+
     case "$user_shell" in
         bash)
             if [ "$os" = "macos" ]; then
-                target_dir="/usr/local/etc/bash_completion.d"
+                target_dir="$brew_prefix/etc/bash_completion.d"
             else
                 target_dir="/etc/bash_completion.d"
             fi
             target="$target_dir/$BINARY"
             ;;
         zsh)
-            target_dir="/usr/local/share/zsh/site-functions"
+            if [ "$os" = "macos" ]; then
+                target_dir="$brew_prefix/share/zsh/site-functions"
+            else
+                target_dir="/usr/local/share/zsh/site-functions"
+            fi
             target="$target_dir/_$BINARY"
             ;;
         fish)
@@ -190,9 +208,10 @@ install_completion() {
             ;;
     esac
 
-    if [ -w "$(dirname "$target_dir" 2>/dev/null || echo "$target_dir")" ] \
-       || [ "$user_shell" = "fish" ]; then
-        mkdir -p "$target_dir"
+    # Try to create target_dir as the invoking user first; promote to
+    # sudo only on failure. Cheaper than guessing writability from the
+    # parent dir, and correct when target_dir already exists.
+    if mkdir -p "$target_dir" 2>/dev/null && [ -w "$target_dir" ]; then
         printf '%s\n' "$completion_script" > "$target"
     else
         log_warn "writing completion to $target requires sudo"
