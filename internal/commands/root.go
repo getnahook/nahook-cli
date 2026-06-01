@@ -11,6 +11,7 @@ import (
 
 	"github.com/getnahook/nahook-cli/internal/commands/endpoints"
 	"github.com/getnahook/nahook-cli/internal/commands/events"
+	"github.com/getnahook/nahook-cli/internal/commands/mcp"
 	"github.com/getnahook/nahook-cli/internal/version"
 )
 
@@ -49,6 +50,7 @@ $NAHOOK_CONFIG_DIR) and talks to https://api.nahook.com by default
 	root.AddCommand(NewTriggerCommand())
 	root.AddCommand(endpoints.NewCommand())
 	root.AddCommand(events.NewCommand())
+	root.AddCommand(mcp.NewCommand())
 
 	return root
 }

@@ -37,10 +37,21 @@ func UserAgent() string {
 	)
 }
 
-// ClientHeader returns the value of the X-Nahook-Client header — a
-// structured, proxy-resistant equivalent of User-Agent that the backend
-// uses for analytics + telemetry. The MCP server will set this with a
-// "mcp/" prefix so the backend can distinguish surfaces cleanly.
+// ClientHeader returns the value of the X-Nahook-Client header for
+// regular CLI traffic — a structured, proxy-resistant equivalent of
+// User-Agent that the backend uses for analytics + telemetry.
 func ClientHeader() string {
-	return fmt.Sprintf("cli/%s %s/%s", Version, runtime.GOOS, runtime.GOARCH)
+	return clientHeaderFor("cli")
+}
+
+// MCPClientHeader returns the X-Nahook-Client value used by the
+// `nahook mcp serve` server. Same shape as ClientHeader but with an
+// `mcp/` prefix so backend analytics can distinguish requests made by
+// an AI assistant from requests made by a human at the terminal.
+func MCPClientHeader() string {
+	return clientHeaderFor("mcp")
+}
+
+func clientHeaderFor(surface string) string {
+	return fmt.Sprintf("%s/%s %s/%s", surface, Version, runtime.GOOS, runtime.GOARCH)
 }

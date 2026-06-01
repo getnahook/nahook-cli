@@ -25,9 +25,10 @@ const defaultTimeout = 30 * time.Second
 // Client makes authenticated and unauthenticated requests against the
 // Nahook API. The zero value is unusable — always construct via New.
 type Client struct {
-	baseURL    string
-	bearer     string
-	httpClient *http.Client
+	baseURL      string
+	bearer       string
+	clientHeader string // overrides version.ClientHeader() when non-empty
+	httpClient   *http.Client
 }
 
 // New returns a Client bound to baseURL with no credentials. Use
@@ -47,6 +48,18 @@ func New(baseURL string) *Client {
 func (c *Client) WithBearer(token string) *Client {
 	dup := *c
 	dup.bearer = token
+	return &dup
+}
+
+// WithClientHeader returns a shallow copy of c that emits the supplied
+// X-Nahook-Client header value on every request, instead of the default
+// `cli/<version> ...` string. The MCP server uses this to identify
+// itself as `mcp/<version>` so the backend can attribute traffic to the
+// MCP surface separately from CLI commands. See the auth-design § 3.8
+// (active CLI tokens dashboard) for why we want them distinguishable.
+func (c *Client) WithClientHeader(header string) *Client {
+	dup := *c
+	dup.clientHeader = header
 	return &dup
 }
 
@@ -109,7 +122,11 @@ func (c *Client) Do(ctx context.Context, method, path string, body, out any) err
 
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("User-Agent", version.UserAgent())
-	req.Header.Set("X-Nahook-Client", version.ClientHeader())
+	if c.clientHeader != "" {
+		req.Header.Set("X-Nahook-Client", c.clientHeader)
+	} else {
+		req.Header.Set("X-Nahook-Client", version.ClientHeader())
+	}
 	if body != nil {
 		req.Header.Set("Content-Type", "application/json")
 	}
