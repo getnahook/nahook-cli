@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Claude Desktop, Cursor, Cline and other MCP clients drive Nahook on
   the developer's behalf with the credentials they already configured
   via `nahook login`.
-- MCP tool surface (13 tools): `whoami`, `list_endpoints`,
+- MCP tool surface (12 tools): `whoami`, `list_endpoints`,
   `get_endpoint`, `create_endpoint`, `update_endpoint`,
   `list_environments`, `list_deliveries`, `get_delivery` (with optional
   `include_payload`), `list_attempts`, `retry_delivery`, `trigger_event`,
