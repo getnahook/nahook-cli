@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/getnahook/nahook-cli/internal/api"
+	"github.com/getnahook/nahook-cli/internal/commands/cliargs"
 	"github.com/getnahook/nahook-cli/internal/output"
 )
 
@@ -36,7 +37,7 @@ Payload sources:
   nahook send ep_xxx --data '{"order_id":"o_1"}'
   nahook send ep_xxx --data @body.json
   cat body.json | nahook send ep_xxx --data -`,
-		Args: cobra.ExactArgs(1),
+		Args: cliargs.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if forward != "" {
 				// --forward replays the signed payload to a local URL for

@@ -5,6 +5,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/getnahook/nahook-cli/internal/commands/cliargs"
 	"github.com/getnahook/nahook-cli/internal/commands/session"
 )
 
@@ -18,7 +19,7 @@ func newResendCommand() *cobra.Command {
 		Short: "Re-enqueue a failed or dead-lettered delivery",
 		Long: `Re-enqueue a delivery for redelivery. Only deliveries in failed or
 dead_letter status are eligible; other statuses return a 409 conflict.`,
-		Args: cobra.ExactArgs(1),
+		Args: cliargs.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// --forward will eventually replay the payload to a local URL
 			// for development. The backend /retry endpoint doesn't yet

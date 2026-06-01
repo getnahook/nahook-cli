@@ -3,6 +3,7 @@ package endpoints
 import (
 	"github.com/spf13/cobra"
 
+	"github.com/getnahook/nahook-cli/internal/commands/cliargs"
 	"github.com/getnahook/nahook-cli/internal/commands/session"
 )
 
@@ -11,7 +12,7 @@ func newGetCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "get <endpoint-id>",
 		Short: "Show one webhook endpoint by its public ID (ep_xxx)",
-		Args:  cobra.ExactArgs(1),
+		Args:  cliargs.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			_, api, err := session.Require()
 			if err != nil {

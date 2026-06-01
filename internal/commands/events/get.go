@@ -12,6 +12,7 @@ import (
 
 	"github.com/getnahook/nahook-cli/internal/api"
 	"github.com/getnahook/nahook-cli/internal/client"
+	"github.com/getnahook/nahook-cli/internal/commands/cliargs"
 	"github.com/getnahook/nahook-cli/internal/commands/session"
 	"github.com/getnahook/nahook-cli/internal/output"
 )
@@ -30,7 +31,7 @@ Pass --include-payload to also fetch the original event body from the
 delivery payload store. Payload storage is a plan-gated feature; on
 plans without it the backend returns feature_disabled and the delivery
 summary still prints.`,
-		Args: cobra.ExactArgs(1),
+		Args: cliargs.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			_, apiClient, err := session.Require()
 			if err != nil {

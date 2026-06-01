@@ -4,6 +4,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/getnahook/nahook-cli/internal/api"
+	"github.com/getnahook/nahook-cli/internal/commands/cliargs"
 	"github.com/getnahook/nahook-cli/internal/commands/session"
 )
 
@@ -25,7 +26,7 @@ func newUpdateCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "update <endpoint-id>",
 		Short: "Update fields on an existing webhook endpoint",
-		Args:  cobra.ExactArgs(1),
+		Args:  cliargs.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			_, apiClient, err := session.Require()
 			if err != nil {

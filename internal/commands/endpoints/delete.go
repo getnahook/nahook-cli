@@ -5,6 +5,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/getnahook/nahook-cli/internal/commands/cliargs"
 	"github.com/getnahook/nahook-cli/internal/commands/session"
 )
 
@@ -13,7 +14,7 @@ func newDeleteCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "delete <endpoint-id>",
 		Short: "Permanently delete a webhook endpoint",
-		Args:  cobra.ExactArgs(1),
+		Args:  cliargs.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if !force {
 				// Confirmation prompt would belong here, but every other
