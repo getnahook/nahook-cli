@@ -40,6 +40,10 @@ Payload sources:
   cat body.json | nahook trigger order.created --data -`,
 		Args: cliargs.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			// Manual required-flag check — see cliargs.RequireStringFlag.
+			if err := cliargs.RequireStringFlag(cmd, "data", data); err != nil {
+				return err
+			}
 			if forward != "" {
 				// --forward replays the signed payload to a local URL. The
 				// signing question for trigger is open (which subscribed
@@ -82,9 +86,8 @@ Payload sources:
 	cmd.Flags().BoolVar(&jsonOut, "json", false,
 		"emit JSON instead of the human-readable key/value view")
 
-	if err := cmd.MarkFlagRequired("data"); err != nil {
-		panic(err)
-	}
+	// Required-flag check is at the top of RunE (see cliargs.RequireStringFlag)
+	// so missing --data prints the full help block instead of a bare error line.
 	return cmd
 }
 

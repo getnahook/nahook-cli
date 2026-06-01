@@ -8,6 +8,7 @@ import (
 
 	"github.com/getnahook/nahook-cli/internal/api"
 	"github.com/getnahook/nahook-cli/internal/client"
+	"github.com/getnahook/nahook-cli/internal/commands/cliargs"
 	"github.com/getnahook/nahook-cli/internal/commands/session"
 	"github.com/getnahook/nahook-cli/internal/output"
 )
@@ -45,6 +46,13 @@ func newListCommand() *cobra.Command {
 page transparently (the CLI sleeps and retries on 429 rate-limit responses).`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
+			// Manual required-flag check (not cobra.MarkFlagRequired) so
+			// the user gets the full help block on failure. Cobra's
+			// built-in check runs through a separate code path that
+			// bypasses our help-on-error hooks.
+			if err := cliargs.RequireStringFlag(cmd, "endpoint", endpointID); err != nil {
+				return err
+			}
 			if status != "" && !validStatuses[status] {
 				return fmt.Errorf("invalid --status %q — must be one of pending, delivering, delivered, failed, scheduled_retry, dead_letter", status)
 			}
@@ -91,12 +99,9 @@ page transparently (the CLI sleeps and retries on 429 rate-limit responses).`,
 	cmd.Flags().BoolVar(&all, "all", false, "auto-paginate through every page (handles 429 with Retry-After)")
 	cmd.Flags().BoolVar(&jsonOut, "json", false, "emit JSON instead of the human-readable table")
 
-	if err := cmd.MarkFlagRequired("endpoint"); err != nil {
-		// Cobra returns an error only if the flag doesn't exist; our flag
-		// was just registered, so this should never happen at runtime.
-		// Panic so a refactor regression is loud during `go test`.
-		panic(err)
-	}
+	// Required-flag check lives at the top of RunE (see cliargs.RequireStringFlag
+	// above) instead of cobra.MarkFlagRequired so the user sees the
+	// full --help block on failure.
 	return cmd
 }
 
