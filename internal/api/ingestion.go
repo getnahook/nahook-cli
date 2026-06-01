@@ -60,9 +60,13 @@ type SendResult struct {
 }
 
 // Send fires a single webhook to one endpoint by its public ID.
+//
+// Path is /api/ingest/:endpointId — the `/api` prefix is set by the
+// Fastify register in apps/ingestion/src/server.ts (`prefix: "/api"`)
+// and is what the published Go SDK targets. Don't drop it.
 func (c *IngestionClient) Send(ctx context.Context, endpointID string, in SendInput) (*SendResult, error) {
 	var out SendResult
-	if err := c.HTTP.Do(ctx, "POST", "/ingest/"+url.PathEscape(endpointID), in, &out); err != nil {
+	if err := c.HTTP.Do(ctx, "POST", "/api/ingest/"+url.PathEscape(endpointID), in, &out); err != nil {
 		return nil, err
 	}
 	return &out, nil
@@ -90,9 +94,11 @@ type TriggerResult struct {
 // Trigger fans an event out to every endpoint subscribed to the named
 // event type. An empty DeliveryIDs slice means the event is recognised
 // but has no current subscribers — accepted, not an error.
+//
+// Path is /api/ingest/event/:eventType — see Send() comment.
 func (c *IngestionClient) Trigger(ctx context.Context, eventType string, in TriggerInput) (*TriggerResult, error) {
 	var out TriggerResult
-	if err := c.HTTP.Do(ctx, "POST", "/ingest/event/"+url.PathEscape(eventType), in, &out); err != nil {
+	if err := c.HTTP.Do(ctx, "POST", "/api/ingest/event/"+url.PathEscape(eventType), in, &out); err != nil {
 		return nil, err
 	}
 	return &out, nil

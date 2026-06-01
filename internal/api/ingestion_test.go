@@ -66,8 +66,8 @@ func TestIngestionSend_PathBodyAndDecoding(t *testing.T) {
 	if gotMethod != "POST" {
 		t.Errorf("expected POST, got %s", gotMethod)
 	}
-	if gotPath != "/ingest/ep_xxx" {
-		t.Errorf("expected /ingest/ep_xxx, got %s", gotPath)
+	if gotPath != "/api/ingest/ep_xxx" {
+		t.Errorf("expected /api/ingest/ep_xxx, got %s", gotPath)
 	}
 	if gotAuth != "Bearer nhk_us_test" {
 		t.Errorf("expected bearer header, got %q", gotAuth)
@@ -117,8 +117,8 @@ func TestIngestionTrigger_PathBodyAndDecoding(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Trigger: %v", err)
 	}
-	if gotPath != "/ingest/event/order.created" {
-		t.Errorf("expected /ingest/event/order.created, got %s", gotPath)
+	if gotPath != "/api/ingest/event/order.created" {
+		t.Errorf("expected /api/ingest/event/order.created, got %s", gotPath)
 	}
 	meta, ok := gotBody["metadata"].(map[string]any)
 	if !ok || meta["source"] != "stripe" {
