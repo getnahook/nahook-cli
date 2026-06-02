@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Nahook CLI — Install</title>
+<meta name="description" content="The official Nahook command-line tool. Trigger webhook events, inspect deliveries, and manage endpoints from your terminal." />
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
+    color: #09090b;
+    background: #ffffff;
+    line-height: 1.5;
+  }
+  main {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 64px 24px;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 48px;
+  }
+  .brand-mark {
+    width: 32px;
+    height: 32px;
+  }
+  .brand-name {
+    font-size: 18px;
+    font-weight: 700;
+    color: #09090b;
+  }
+  h1 {
+    font-size: 32px;
+    font-weight: 700;
+    margin: 0 0 12px;
+    letter-spacing: -0.02em;
+  }
+  .tagline {
+    font-size: 17px;
+    color: #71717a;
+    margin: 0 0 40px;
+  }
+  .install {
+    background: #18181b;
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin: 0 0 12px;
+    font-family: "SF Mono", "Menlo", "Monaco", "Consolas", monospace;
+    font-size: 14px;
+    color: #fafafa;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+  .install .prompt { color: #ea580c; user-select: none; margin-right: 8px; }
+  .install-note {
+    font-size: 13px;
+    color: #71717a;
+    margin: 0 0 40px;
+  }
+  .install-note a { color: #ea580c; text-decoration: none; }
+  .install-note a:hover { text-decoration: underline; }
+  h2 {
+    font-size: 14px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #71717a;
+    margin: 32px 0 12px;
+  }
+  .alt {
+    background: #f4f4f5;
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin: 0 0 8px;
+    font-family: "SF Mono", "Menlo", "Monaco", "Consolas", monospace;
+    font-size: 13px;
+    color: #09090b;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+  .verify {
+    background: #fef3c7;
+    border: 1px solid #fde68a;
+    border-radius: 8px;
+    padding: 16px 18px;
+    margin: 32px 0 0;
+    font-size: 13px;
+    color: #78350f;
+  }
+  .verify strong { color: #92400e; }
+  footer {
+    margin-top: 64px;
+    padding-top: 24px;
+    border-top: 1px solid #e4e4e7;
+    font-size: 13px;
+    color: #71717a;
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  footer a { color: #71717a; text-decoration: none; }
+  footer a:hover { color: #09090b; }
+</style>
+</head>
+<body>
+<main>
+  <div class="brand">
+    <svg class="brand-mark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+      <rect width="32" height="32" rx="8" fill="#ea580c"/>
+      <path d="M10 22C10 22 13 14 16 14C19 14 22 22 22 22" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+      <circle cx="16" cy="9" r="2.5" stroke="white" stroke-width="2"/>
+    </svg>
+    <span class="brand-name">Nahook</span>
+  </div>
+
+  <h1>Nahook CLI</h1>
+  <p class="tagline">Trigger webhook events, inspect deliveries, and manage endpoints from your terminal.</p>
+
+  <div class="install"><span class="prompt">$</span>curl -fsSL https://cli.nahook.com/install.sh | sh</div>
+  <p class="install-note">Verifies SHA-256 checksums against the GitHub release before installing. <a href="https://github.com/getnahook/nahook-cli/blob/main/install.sh">Read the script</a> before running it if you'd like.</p>
+
+  <h2>Other install paths</h2>
+  <div class="alt">brew install getnahook/tap/nahook</div>
+  <div class="alt">go install github.com/getnahook/nahook-cli/cmd/nahook@latest</div>
+
+  <h2>After install</h2>
+  <div class="alt">nahook login &amp;&amp; nahook whoami</div>
+
+  <div class="verify">
+    <strong>Want to verify before running?</strong> The script downloads the release tarball, fetches the official <code>checksums.txt</code> from GitHub Releases, and verifies the SHA-256 before extracting. To inspect the script first, run <code>curl -fsSL https://cli.nahook.com/install.sh -o install.sh</code>, read it, then <code>sh install.sh</code>.
+  </div>
+
+  <footer>
+    <a href="https://docs.nahook.com/cli">Docs</a>
+    <a href="https://docs.nahook.com/mcp">MCP server</a>
+    <a href="https://github.com/getnahook/nahook-cli">GitHub</a>
+    <a href="https://github.com/getnahook/nahook-cli/releases">Releases</a>
+    <a href="https://nahook.com">nahook.com</a>
+  </footer>
+</main>
+</body>
+</html>

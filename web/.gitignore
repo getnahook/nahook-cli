@@ -1,0 +1,4 @@
+# install.sh is copied in from the repo root at CF Pages build time
+# (build command: `cp install.sh web/install.sh`). Keep this directory
+# free of build artifacts so the source of truth stays at /install.sh.
+install.sh
