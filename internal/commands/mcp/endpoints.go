@@ -103,8 +103,12 @@ func registerEndpoints(srv *sdk.Server, apiClient APIClientFactory) {
 	trueVal := true
 
 	sdk.AddTool(srv, &sdk.Tool{
-		Name:        "list_endpoints",
-		Description: "List every endpoint in the current workspace. Returns id, type, url, status (active/paused), is_active, created_at, and last_delivery_at for each.",
+		Name: "list_endpoints",
+		Description: "List every endpoint in the current workspace. Returns id, type, url, status (active/paused), is_active, " +
+			"created_at, and last_delivery_at for each. " +
+			"Example: user says \"show me my webhooks\" or \"list my endpoints\" → call with no args. " +
+			"This is the natural first call whenever the user names operations on an endpoint without giving a " +
+			"specific ep_xxx id — use the returned ids in follow-up calls.",
 		Annotations: &sdk.ToolAnnotations{
 			Title:           "List endpoints",
 			ReadOnlyHint:    true,
@@ -129,8 +133,10 @@ func registerEndpoints(srv *sdk.Server, apiClient APIClientFactory) {
 	})
 
 	sdk.AddTool(srv, &sdk.Tool{
-		Name:        "get_endpoint",
-		Description: "Fetch a single endpoint by its public id (ep_xxx).",
+		Name: "get_endpoint",
+		Description: "Fetch a single endpoint by its public id (ep_xxx). " +
+			"Example: user says \"show me ep_abc\" or \"details of ep_abc\". " +
+			"If the user references an endpoint without naming a specific ep_xxx id, call list_endpoints first to discover ids.",
 		Annotations: &sdk.ToolAnnotations{
 			Title:           "Get endpoint",
 			ReadOnlyHint:    true,
@@ -153,7 +159,10 @@ func registerEndpoints(srv *sdk.Server, apiClient APIClientFactory) {
 	sdk.AddTool(srv, &sdk.Tool{
 		Name: "create_endpoint",
 		Description: "Create a new endpoint in the current workspace. If environment_id is omitted, the workspace's default " +
-			"environment is used. Returns the created endpoint with its newly-generated public id.",
+			"environment is used. environment_id accepts either an env_xxx id or a slug like \"production\"/\"staging\". " +
+			"Returns the created endpoint with its newly-generated public id. " +
+			"Example: user says \"create a webhook for https://example.com/hook\" → call with url=\"https://example.com/hook\". " +
+			"If the user explicitly names an environment (\"in staging\"), pass it; otherwise omit and the default is used.",
 		Annotations: &sdk.ToolAnnotations{
 			Title:           "Create endpoint",
 			ReadOnlyHint:    false,
@@ -200,8 +209,12 @@ func registerEndpoints(srv *sdk.Server, apiClient APIClientFactory) {
 	})
 
 	sdk.AddTool(srv, &sdk.Tool{
-		Name:        "list_environments",
-		Description: "List every environment in the current workspace. Use the returned id (env_xxx) or slug as environment_id when creating endpoints.",
+		Name: "list_environments",
+		Description: "List every environment in the current workspace. Use the returned id (env_xxx) or slug as " +
+			"environment_id when creating endpoints. " +
+			"Example: user says \"what environments do I have\". Most workspaces have a single default environment — " +
+			"only call this when the user mentions environments explicitly or you need to disambiguate where a new " +
+			"endpoint should land.",
 		Annotations: &sdk.ToolAnnotations{
 			Title:           "List environments",
 			ReadOnlyHint:    true,
@@ -234,7 +247,11 @@ func registerEndpoints(srv *sdk.Server, apiClient APIClientFactory) {
 	sdk.AddTool(srv, &sdk.Tool{
 		Name: "update_endpoint",
 		Description: "Patch an existing endpoint. Only fields explicitly set in the input are sent to the API; " +
-			"omit a field to leave it unchanged. Common uses: pause/resume via is_active, redirect via url.",
+			"omit a field to leave it unchanged. Common uses: pause/resume via is_active, redirect via url. " +
+			"Example: \"pause ep_abc\" / \"disable ep_abc\" → endpoint_id=\"ep_abc\", is_active=false. " +
+			"\"resume ep_abc\" / \"enable ep_abc\" → is_active=true. " +
+			"\"point ep_abc at https://new.com\" → endpoint_id=\"ep_abc\", url=\"https://new.com\". " +
+			"PATCH semantics matter: passing url=\"\" would clear the URL, so don't include fields the user didn't ask to change.",
 		Annotations: &sdk.ToolAnnotations{
 			Title:           "Update endpoint",
 			ReadOnlyHint:    false,

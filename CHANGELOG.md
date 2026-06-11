@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-06-11
+
+### Added
+
+- MCP server now sends an `Instructions` payload to clients at session
+  init, describing the Nahook mental model (endpoints, events,
+  deliveries, attempts, environments) and a short tool-selection guide.
+  Becomes part of the LLM's context for every MCP session, helping the
+  model pick the right tool from the user's intent instead of inferring
+  it from tool names alone.
+- Every MCP tool description now includes a worked example mapping a
+  likely user utterance to the tool's parameters, and a cross-reference
+  to the related tool the model could otherwise confuse it with
+  (`list_endpoints` ↔ `get_endpoint`, `list_deliveries` ↔ `get_delivery`,
+  `get_delivery` ↔ `list_attempts`, `retry_delivery` → `get_delivery`,
+  `trigger_event` ↔ `send_to_endpoint`). The new copy also surfaces the
+  PATCH semantics of `update_endpoint` and the 409-on-wrong-status
+  behavior of `retry_delivery`, both of which were under-documented.
+
 ## [0.2.1] - 2026-06-11
 
 ### Added

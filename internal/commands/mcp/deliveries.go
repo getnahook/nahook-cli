@@ -98,7 +98,10 @@ func registerDeliveries(srv *sdk.Server, apiClient APIClientFactory) {
 	sdk.AddTool(srv, &sdk.Tool{
 		Name: "list_deliveries",
 		Description: "List deliveries for an endpoint, newest-first. Paginate by passing next_cursor back as cursor on " +
-			"subsequent calls. Returns up to 200 per page (default 50).",
+			"subsequent calls. Returns up to 200 per page (default 50). " +
+			"Example: \"show me failed deliveries for ep_acme\" → endpoint_id=\"ep_acme\", status=\"failed\". " +
+			"Requires an endpoint_id — if the user names a specific delivery (del_xxx) instead, use get_delivery. " +
+			"Valid status filters: pending, delivering, delivered, failed, scheduled_retry, dead_letter.",
 		Annotations: &sdk.ToolAnnotations{
 			Title: "List deliveries", ReadOnlyHint: true,
 			DestructiveHint: &falseVal, OpenWorldHint: &trueVal, IdempotentHint: true,
@@ -130,7 +133,9 @@ func registerDeliveries(srv *sdk.Server, apiClient APIClientFactory) {
 		Name: "get_delivery",
 		Description: "Fetch a single delivery by its public id (del_xxx). Returns status, attempt count, timestamps. " +
 			"Pass include_payload=true to also fetch the original webhook body — critical for debugging why a " +
-			"delivery failed. Adds one extra HTTP round-trip.",
+			"delivery failed. Adds one extra HTTP round-trip. " +
+			"Example: \"why did del_xyz fail?\" → call with delivery_id=\"del_xyz\", include_payload=true to see the body " +
+			"the producer sent, then follow up with list_attempts to see what each HTTP attempt returned.",
 		Annotations: &sdk.ToolAnnotations{
 			Title: "Get delivery", ReadOnlyHint: true,
 			DestructiveHint: &falseVal, OpenWorldHint: &trueVal, IdempotentHint: true,
@@ -168,8 +173,11 @@ func registerDeliveries(srv *sdk.Server, apiClient APIClientFactory) {
 	})
 
 	sdk.AddTool(srv, &sdk.Tool{
-		Name:        "list_attempts",
-		Description: "List every recorded attempt for a delivery, oldest first. Useful for debugging why a delivery failed.",
+		Name: "list_attempts",
+		Description: "List every recorded attempt for a delivery, oldest first. Useful for debugging why a delivery failed. " +
+			"Example: \"why did del_xyz fail?\" → pair this with get_delivery (include_payload=true). " +
+			"get_delivery shows what the producer sent; list_attempts shows what each receiver attempt returned. " +
+			"Together they tell you whether the failure was producer-side (bad payload) or receiver-side (5xx, timeout).",
 		Annotations: &sdk.ToolAnnotations{
 			Title: "List attempts", ReadOnlyHint: true,
 			DestructiveHint: &falseVal, OpenWorldHint: &trueVal, IdempotentHint: true,

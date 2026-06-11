@@ -31,7 +31,10 @@ func registerWhoami(srv *sdk.Server, loader ConfigLoader) {
 		Name: "whoami",
 		Description: "Return the workspace, region, and token id the local Nahook CLI is logged into. " +
 			"Use this as a first call to confirm credentials are in place. Reads ~/.nahook/config.toml; " +
-			"never hits the network.",
+			"never hits the network. " +
+			"Example: \"am I logged in?\", \"what workspace am I in?\". " +
+			"Also worth calling defensively before other tools if you suspect credentials might be missing — it " +
+			"tells you whether `nahook login` has run.",
 		Annotations: &sdk.ToolAnnotations{
 			Title:           "Who am I?",
 			ReadOnlyHint:    true,

@@ -41,7 +41,11 @@ func registerIngest(srv *sdk.Server, ingest IngestionClientFactory) {
 		Name: "trigger_event",
 		Description: "Fire an event by event type — the backend fans it out to every endpoint subscribed to that type. " +
 			"Returns one delivery id per subscriber (empty if no subscribers). Use send_to_endpoint when you want to " +
-			"target one specific endpoint instead.",
+			"target one specific endpoint instead. " +
+			"Example: \"fire an order.created event with order_id=ord_123\" → event_type=\"order.created\", " +
+			"payload={\"order_id\": \"ord_123\"}. " +
+			"An empty delivery_ids array means no endpoint subscribes to that event type — inspect subscriptions with " +
+			"list_endpoints if the user expected a non-empty result.",
 		Annotations: &sdk.ToolAnnotations{
 			Title:           "Trigger event",
 			ReadOnlyHint:    false,
@@ -72,7 +76,10 @@ func registerIngest(srv *sdk.Server, ingest IngestionClientFactory) {
 	sdk.AddTool(srv, &sdk.Tool{
 		Name: "send_to_endpoint",
 		Description: "Send a webhook directly to one endpoint (skips event-type fan-out). Pass idempotency_key for safe " +
-			"retries — duplicate keys return the original delivery id.",
+			"retries — duplicate keys return the original delivery id. " +
+			"Example: \"send a test webhook to ep_abc with payload {...}\" → endpoint_id=\"ep_abc\", payload={...}. " +
+			"Use this when the user names a specific endpoint to target; use trigger_event when the user names an " +
+			"event type that should fan out to all subscribers.",
 		Annotations: &sdk.ToolAnnotations{
 			Title:           "Send webhook to endpoint",
 			ReadOnlyHint:    false,
