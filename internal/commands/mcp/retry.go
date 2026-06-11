@@ -21,7 +21,8 @@ func registerRetry(srv *sdk.Server, apiClient APIClientFactory) {
 			"other state. Returns the updated delivery row. " +
 			"Example: \"retry del_xyz\" → call with delivery_id=\"del_xyz\". " +
 			"Only works when the delivery's status is `failed` or `dead_letter` — calling on `delivered`, `pending`, " +
-			"`delivering`, or `scheduled_retry` returns 409. Check status with get_delivery first if uncertain.",
+			"`delivering`, or `scheduled_retry` returns 409. Check status with get_delivery first if uncertain. " +
+			"For which statuses accept retry and which don't, see resource nahook://schemas/delivery-statuses.",
 		Annotations: &sdk.ToolAnnotations{
 			Title:           "Retry delivery",
 			ReadOnlyHint:    false,

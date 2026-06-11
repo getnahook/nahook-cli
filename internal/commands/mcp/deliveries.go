@@ -101,7 +101,9 @@ func registerDeliveries(srv *sdk.Server, apiClient APIClientFactory) {
 			"subsequent calls. Returns up to 200 per page (default 50). " +
 			"Example: \"show me failed deliveries for ep_acme\" → endpoint_id=\"ep_acme\", status=\"failed\". " +
 			"Requires an endpoint_id — if the user names a specific delivery (del_xxx) instead, use get_delivery. " +
-			"Valid status filters: pending, delivering, delivered, failed, scheduled_retry, dead_letter.",
+			"Valid status filters: pending, delivering, delivered, failed, scheduled_retry, dead_letter. " +
+			"For the full delivery schema and status value meanings, see resources nahook://schemas/delivery " +
+			"and nahook://schemas/delivery-statuses.",
 		Annotations: &sdk.ToolAnnotations{
 			Title: "List deliveries", ReadOnlyHint: true,
 			DestructiveHint: &falseVal, OpenWorldHint: &trueVal, IdempotentHint: true,
@@ -135,7 +137,9 @@ func registerDeliveries(srv *sdk.Server, apiClient APIClientFactory) {
 			"Pass include_payload=true to also fetch the original webhook body — critical for debugging why a " +
 			"delivery failed. Adds one extra HTTP round-trip. " +
 			"Example: \"why did del_xyz fail?\" → call with delivery_id=\"del_xyz\", include_payload=true to see the body " +
-			"the producer sent, then follow up with list_attempts to see what each HTTP attempt returned.",
+			"the producer sent, then follow up with list_attempts to see what each HTTP attempt returned. " +
+			"For the full delivery schema and status value meanings, see resources nahook://schemas/delivery " +
+			"and nahook://schemas/delivery-statuses.",
 		Annotations: &sdk.ToolAnnotations{
 			Title: "Get delivery", ReadOnlyHint: true,
 			DestructiveHint: &falseVal, OpenWorldHint: &trueVal, IdempotentHint: true,

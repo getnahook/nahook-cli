@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.3] - 2026-06-11
+
+### Added
+
+- MCP server now exposes three Resources the LLM can fetch on demand
+  instead of having the same content inlined into every tool description:
+  - `nahook://schemas/endpoint` — JSON Schema for the endpoint objects
+    returned by `list_endpoints` / `get_endpoint` / `create_endpoint` /
+    `update_endpoint`. Reflected from the `mcpEndpoint` Go struct, so
+    schema and actual tool output stay in lockstep through future
+    refactors.
+  - `nahook://schemas/delivery` — JSON Schema for the delivery objects
+    returned by `list_deliveries` / `get_delivery` / `retry_delivery`,
+    reflected from the `mcpDelivery` struct.
+  - `nahook://schemas/delivery-statuses` — Markdown reference for the
+    six delivery status values (`pending`, `delivering`, `delivered`,
+    `failed`, `scheduled_retry`, `dead_letter`): meaning of each, which
+    accept `retry_delivery`, and a lifecycle diagram. Lets the LLM cite
+    authoritative status definitions instead of guessing.
+- Tool descriptions for `list_endpoints`, `get_endpoint`,
+  `create_endpoint`, `update_endpoint`, `list_deliveries`,
+  `get_delivery`, and `retry_delivery` now cross-reference the relevant
+  resources so the LLM knows where to look when it needs deeper detail.
+
+### Changed
+
+- `Instructions` payload moved from an inline Go const to
+  `INSTRUCTIONS.md` (embedded via `//go:embed`). No content change —
+  pure refactor for editor support and easier review by non-Go readers.
+
 ## [0.2.2] - 2026-06-11
 
 ### Added

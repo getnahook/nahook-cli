@@ -108,7 +108,8 @@ func registerEndpoints(srv *sdk.Server, apiClient APIClientFactory) {
 			"created_at, and last_delivery_at for each. " +
 			"Example: user says \"show me my webhooks\" or \"list my endpoints\" → call with no args. " +
 			"This is the natural first call whenever the user names operations on an endpoint without giving a " +
-			"specific ep_xxx id — use the returned ids in follow-up calls.",
+			"specific ep_xxx id — use the returned ids in follow-up calls. " +
+			"For the full endpoint schema, see resource nahook://schemas/endpoint.",
 		Annotations: &sdk.ToolAnnotations{
 			Title:           "List endpoints",
 			ReadOnlyHint:    true,
@@ -136,7 +137,8 @@ func registerEndpoints(srv *sdk.Server, apiClient APIClientFactory) {
 		Name: "get_endpoint",
 		Description: "Fetch a single endpoint by its public id (ep_xxx). " +
 			"Example: user says \"show me ep_abc\" or \"details of ep_abc\". " +
-			"If the user references an endpoint without naming a specific ep_xxx id, call list_endpoints first to discover ids.",
+			"If the user references an endpoint without naming a specific ep_xxx id, call list_endpoints first to discover ids. " +
+			"For the full endpoint schema, see resource nahook://schemas/endpoint.",
 		Annotations: &sdk.ToolAnnotations{
 			Title:           "Get endpoint",
 			ReadOnlyHint:    true,
@@ -162,7 +164,8 @@ func registerEndpoints(srv *sdk.Server, apiClient APIClientFactory) {
 			"environment is used. environment_id accepts either an env_xxx id or a slug like \"production\"/\"staging\". " +
 			"Returns the created endpoint with its newly-generated public id. " +
 			"Example: user says \"create a webhook for https://example.com/hook\" → call with url=\"https://example.com/hook\". " +
-			"If the user explicitly names an environment (\"in staging\"), pass it; otherwise omit and the default is used.",
+			"If the user explicitly names an environment (\"in staging\"), pass it; otherwise omit and the default is used. " +
+			"For the full endpoint schema, see resource nahook://schemas/endpoint.",
 		Annotations: &sdk.ToolAnnotations{
 			Title:           "Create endpoint",
 			ReadOnlyHint:    false,
@@ -251,7 +254,8 @@ func registerEndpoints(srv *sdk.Server, apiClient APIClientFactory) {
 			"Example: \"pause ep_abc\" / \"disable ep_abc\" → endpoint_id=\"ep_abc\", is_active=false. " +
 			"\"resume ep_abc\" / \"enable ep_abc\" → is_active=true. " +
 			"\"point ep_abc at https://new.com\" → endpoint_id=\"ep_abc\", url=\"https://new.com\". " +
-			"PATCH semantics matter: passing url=\"\" would clear the URL, so don't include fields the user didn't ask to change.",
+			"PATCH semantics matter: passing url=\"\" would clear the URL, so don't include fields the user didn't ask to change. " +
+			"For the full endpoint schema, see resource nahook://schemas/endpoint.",
 		Annotations: &sdk.ToolAnnotations{
 			Title:           "Update endpoint",
 			ReadOnlyHint:    false,
