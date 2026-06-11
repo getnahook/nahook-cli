@@ -112,6 +112,7 @@ func TestListEndpointsTool_HappyPath(t *testing.T) {
 			ID       string `json:"id"`
 			Type     string `json:"type"`
 			URL      string `json:"url"`
+			Status   string `json:"status"`
 			IsActive bool   `json:"is_active"`
 		} `json:"endpoints"`
 	}
@@ -123,6 +124,16 @@ func TestListEndpointsTool_HappyPath(t *testing.T) {
 	}
 	if got.Endpoints[0].ID != "ep_a" || got.Endpoints[1].Type != "slack" {
 		t.Errorf("decoded shape unexpected: %+v", got)
+	}
+	// Status mirrors is_active as a stable textual anchor. Without it,
+	// Claude Desktop renders inactive endpoints with a different glyph
+	// each turn (🔴 / ⚪ / ⏸); having "paused" in the payload gives the
+	// LLM something concrete to render against.
+	if got.Endpoints[0].Status != "active" {
+		t.Errorf("ep_a status = %q, want %q", got.Endpoints[0].Status, "active")
+	}
+	if got.Endpoints[1].Status != "paused" {
+		t.Errorf("ep_b status = %q, want %q", got.Endpoints[1].Status, "paused")
 	}
 }
 

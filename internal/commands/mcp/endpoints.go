@@ -14,6 +14,13 @@ import (
 // the convention used by other tool outputs (whoami) and read more
 // naturally in tool-result transcripts.
 //
+// `status` is a textual mirror of `is_active` ("active" / "paused"). The
+// pair is intentional: `is_active` is the canonical boolean for clients
+// that need a programmatic value, `status` gives chat-rendering LLMs a
+// stable lexical anchor so the same endpoint renders the same indicator
+// every time (vs. the model picking 🔴 / ⚪ / ⏸ inconsistently from a
+// bare boolean).
+//
 // `secret` is intentionally omitted — exposing it to the model could
 // leak it into a transcript or logs. Customers who need the secret can
 // fetch it from the dashboard or the management API.
@@ -22,9 +29,17 @@ type mcpEndpoint struct {
 	Type           string  `json:"type" jsonschema:"webhook or slack"`
 	URL            string  `json:"url" jsonschema:"destination URL"`
 	Description    *string `json:"description,omitempty" jsonschema:"optional human-readable description"`
+	Status         string  `json:"status" jsonschema:"active when the endpoint is delivering, paused when it has been disabled"`
 	IsActive       bool    `json:"is_active" jsonschema:"false when the endpoint is paused"`
 	CreatedAt      string  `json:"created_at" jsonschema:"RFC3339 creation timestamp"`
 	LastDeliveryAt *string `json:"last_delivery_at,omitempty" jsonschema:"RFC3339 timestamp of the most recent delivery attempt, if any"`
+}
+
+func endpointStatus(isActive bool) string {
+	if isActive {
+		return "active"
+	}
+	return "paused"
 }
 
 func toMCPEndpoint(e api.Endpoint) mcpEndpoint {
@@ -33,6 +48,7 @@ func toMCPEndpoint(e api.Endpoint) mcpEndpoint {
 		Type:           string(e.Type),
 		URL:            e.URL,
 		Description:    e.Description,
+		Status:         endpointStatus(e.IsActive),
 		IsActive:       e.IsActive,
 		CreatedAt:      e.CreatedAt,
 		LastDeliveryAt: e.LastDeliveryAt,
@@ -88,7 +104,7 @@ func registerEndpoints(srv *sdk.Server, apiClient APIClientFactory) {
 
 	sdk.AddTool(srv, &sdk.Tool{
 		Name:        "list_endpoints",
-		Description: "List every endpoint in the current workspace. Returns id, type, url, is_active, created_at, and last_delivery_at for each.",
+		Description: "List every endpoint in the current workspace. Returns id, type, url, status (active/paused), is_active, created_at, and last_delivery_at for each.",
 		Annotations: &sdk.ToolAnnotations{
 			Title:           "List endpoints",
 			ReadOnlyHint:    true,

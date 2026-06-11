@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-06-11
+
+### Added
+
+- MCP `list_endpoints` / `get_endpoint` / `create_endpoint` / `update_endpoint`
+  tool output now includes a `status` field (`"active"` or `"paused"`)
+  alongside the existing `is_active` boolean. The textual field gives
+  Claude Desktop and other MCP clients a stable lexical anchor for
+  rendering, so the same endpoint state surfaces with the same visual
+  indicator each turn instead of flipping between glyphs from a bare
+  boolean.
+
 ## [0.2.0] - 2026-06-01
 
 ### Added
