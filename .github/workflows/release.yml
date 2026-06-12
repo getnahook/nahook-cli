@@ -19,6 +19,19 @@ jobs:
         with:
           go-version: "1.25"
           cache: true
+      # Mint a short-lived token for the homebrew-tap formula push.
+      # Using the org's release app instead of a personal PAT keeps the
+      # push off any individual's public activity feed — a PAT push
+      # writes a public event onto the PAT owner's account on every
+      # release.
+      - name: Mint app token for homebrew-tap
+        id: tap_token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.RELEASE_BOT_APP_ID }}
+          private-key: ${{ secrets.RELEASE_BOT_PRIVATE_KEY }}
+          owner: getnahook
+          repositories: homebrew-tap
       - uses: goreleaser/goreleaser-action@v6
         with:
           distribution: goreleaser
@@ -28,9 +41,8 @@ jobs:
           # GITHUB_TOKEN is scoped to THIS repo — sufficient for the
           # release artifacts and tag itself.
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # HOMEBREW_TAP_TOKEN is a PAT scoped to getnahook/homebrew-tap
-          # with `contents:write`. goreleaser uses it to push the
-          # auto-generated formula. If the secret isn't configured the
-          # release still succeeds for binaries; only the brew tap update
-          # is skipped (goreleaser logs a warning and continues).
-          HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          # App installation token with contents:write on
+          # getnahook/homebrew-tap (1h lifetime — plenty for the ~2 min
+          # release). goreleaser uses it to push the auto-generated
+          # formula.
+          HOMEBREW_TAP_TOKEN: ${{ steps.tap_token.outputs.token }}
