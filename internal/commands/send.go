@@ -40,7 +40,9 @@ Payload sources:
 		Args: cliargs.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Manual required-flag check — see cliargs.RequireStringFlag.
-			if err := cliargs.RequireStringFlag(cmd, "data", data); err != nil {
+			if err := cliargs.RequireStringFlag(cmd, "data", data,
+				`nahook send ep_xxx --data '{"order_id":"o_1"}'`,
+				"Payload can also be @file or - for stdin."); err != nil {
 				return err
 			}
 			if forward != "" {
@@ -84,7 +86,7 @@ Payload sources:
 		"emit JSON instead of the human-readable key/value view")
 
 	// Required-flag check is at the top of RunE (see cliargs.RequireStringFlag)
-	// so missing --data prints the full help block instead of a bare error line.
+	// so missing --data yields a concise, actionable error.
 	return cmd
 }
 

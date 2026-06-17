@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.4] - 2026-06-17
+
+### Changed
+
+- `events list`, `send`, and `trigger` now show a concise, actionable
+  error when a required flag is missing instead of dumping the full
+  `--help` block. The message names the missing flag, gives a
+  copy-paste example, an optional hint (e.g. how to find endpoint IDs
+  with `nahook endpoints list`), and a pointer to `--help`.
+
 ## [0.2.3] - 2026-06-11
 
 ### Added

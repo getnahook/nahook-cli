@@ -46,11 +46,12 @@ func newListCommand() *cobra.Command {
 page transparently (the CLI sleeps and retries on 429 rate-limit responses).`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			// Manual required-flag check (not cobra.MarkFlagRequired) so
-			// the user gets the full help block on failure. Cobra's
-			// built-in check runs through a separate code path that
-			// bypasses our help-on-error hooks.
-			if err := cliargs.RequireStringFlag(cmd, "endpoint", endpointID); err != nil {
+			// Manual required-flag check (not cobra.MarkFlagRequired) so we
+			// can return a concise, actionable error instead of cobra's bare
+			// "required flag(s) not set". See cliargs.RequireStringFlag.
+			if err := cliargs.RequireStringFlag(cmd, "endpoint", endpointID,
+				"nahook events list --endpoint ep_xxx",
+				"Find endpoint IDs:  nahook endpoints list"); err != nil {
 				return err
 			}
 			if status != "" && !validStatuses[status] {
@@ -100,8 +101,8 @@ page transparently (the CLI sleeps and retries on 429 rate-limit responses).`,
 	cmd.Flags().BoolVar(&jsonOut, "json", false, "emit JSON instead of the human-readable table")
 
 	// Required-flag check lives at the top of RunE (see cliargs.RequireStringFlag
-	// above) instead of cobra.MarkFlagRequired so the user sees the
-	// full --help block on failure.
+	// above) instead of cobra.MarkFlagRequired so missing --endpoint yields a
+	// concise, actionable error rather than a bare flag-not-set line.
 	return cmd
 }
 
