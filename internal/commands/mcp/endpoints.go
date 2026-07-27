@@ -257,9 +257,13 @@ func registerEndpoints(srv *sdk.Server, apiClient APIClientFactory) {
 			"PATCH semantics matter: passing url=\"\" would clear the URL, so don't include fields the user didn't ask to change. " +
 			"For the full endpoint schema, see resource nahook://schemas/endpoint.",
 		Annotations: &sdk.ToolAnnotations{
-			Title:           "Update endpoint",
-			ReadOnlyHint:    false,
-			DestructiveHint: &falseVal,
+			Title:        "Update endpoint",
+			ReadOnlyHint: false,
+			// Destructive on purpose: a patch overwrites live routing
+			// config — repointing url is the exfiltration primitive a
+			// prompt injection would reach for, so MCP clients must
+			// always surface a human approval prompt.
+			DestructiveHint: &trueVal,
 			OpenWorldHint:   &trueVal,
 			IdempotentHint:  true, // same patch applied twice = same result
 		},

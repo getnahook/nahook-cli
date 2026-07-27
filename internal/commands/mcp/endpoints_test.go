@@ -79,6 +79,48 @@ func TestMCPRequests_CarryMCPClientHeader(t *testing.T) {
 	}
 }
 
+// TestToolAnnotations_DestructiveHints pins the client-gating contract:
+// update_endpoint mutates live routing (repointing its url is the
+// exfiltration primitive a prompt injection would target), so it must be
+// marked destructive and MCP clients must prompt before it runs. The
+// read tools must stay non-destructive. Without this test the headline
+// DestructiveHint guardrail in the injection-hardening change is
+// unprotected — deleting it wouldn't fail any other test.
+func TestToolAnnotations_DestructiveHints(t *testing.T) {
+	ctx, session := startMCPSession(t, Options{})
+	res, err := session.ListTools(ctx, nil)
+	if err != nil {
+		t.Fatalf("ListTools: %v", err)
+	}
+
+	byName := make(map[string]*sdk.Tool, len(res.Tools))
+	for _, tl := range res.Tools {
+		byName[tl.Name] = tl
+	}
+
+	wantDestructive := map[string]bool{
+		"update_endpoint": true,
+		"get_delivery":    false,
+		"list_deliveries": false,
+		"list_endpoints":  false,
+		"whoami":          false,
+	}
+	for name, want := range wantDestructive {
+		tl, ok := byName[name]
+		if !ok {
+			t.Errorf("tool %q missing from ListTools", name)
+			continue
+		}
+		if tl.Annotations == nil || tl.Annotations.DestructiveHint == nil {
+			t.Errorf("tool %q has no DestructiveHint annotation", name)
+			continue
+		}
+		if got := *tl.Annotations.DestructiveHint; got != want {
+			t.Errorf("tool %q DestructiveHint = %v, want %v", name, got, want)
+		}
+	}
+}
+
 func TestListEndpointsTool_HappyPath(t *testing.T) {
 	apiClient, _ := newTestAPIClient(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "GET" || r.URL.Path != "/api/workspaces/ws_test/endpoints" {
